@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RHL Documentation Management System</title>
+
+<!-- Browser-side document/QR libraries. GitHub Pages compatible. -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+
+<style>
+:root{--primary:#126b45;--dark:#17352a;--light:#f3f8f5;--border:#d7e2dc;--danger:#b42318}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef3f0;color:#1f2937}
+header{background:linear-gradient(135deg,#126b45,#194f3b);color:white;padding:22px 28px;box-shadow:0 2px 8px #0002}
+header h1{margin:0 0 5px;font-size:25px}
+header p{margin:0;opacity:.9}
+.container{max-width:1250px;margin:24px auto;padding:0 16px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:18px;box-shadow:0 2px 10px #0000000a}
+.card h2{margin:0 0 16px;color:var(--dark);font-size:19px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid.two{grid-template-columns:repeat(2,1fr)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1/-1}
+label{font-weight:700;font-size:13px}
+input,select,textarea{width:100%;border:1px solid #cbd5d1;border-radius:8px;padding:10px 11px;font-size:14px;background:#fff}
+textarea{min-height:88px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid #126b4530;border-color:var(--primary)}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+button{border:0;border-radius:8px;padding:11px 16px;font-weight:700;cursor:pointer}
+.primary{background:var(--primary);color:white}
+.secondary{background:#e7efeb;color:#174c39}
+.danger{background:#fee4e2;color:var(--danger)}
+.small{font-size:12px;color:#64748b}
+.status{padding:10px 12px;border-radius:8px;background:#ecfdf3;color:#166534;display:none;margin-top:12px}
+.records{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:850px}
+th,td{padding:10px;border-bottom:1px solid var(--border);text-align:left;font-size:13px;vertical-align:top}
+th{background:#f6faf8}
+.badge{display:inline-block;padding:4px 7px;border-radius:999px;background:#e8f4ee;color:#17603f;font-size:11px;font-weight:700}
+#qrBox{display:none;position:fixed;right:25px;bottom:25px;background:#fff;padding:14px;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 30px #0002;z-index:10}
+#qr{display:flex;justify-content:center;margin:5px}
+#printArea{display:none}
+.photo-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.photo-preview img{width:90px;height:70px;object-fit:cover;border-radius:7px;border:1px solid var(--border)}
+@media(max-width:900px){.grid,.grid.two{grid-template-columns:1fr}}
+@media print{
+  body{background:#fff}
+  header,.no-print{display:none!important}
+  #printArea{display:block}
+  .print-page{font-family:Arial;padding:28px}
+  .print-page h1{text-align:center;margin-bottom:5px}
+  .print-page .meta{text-align:center;color:#555;margin-bottom:22px}
+  .print-table{width:100%;border-collapse:collapse}
+  .print-table td,.print-table th{border:1px solid #888;padding:7px;text-align:left}
+  .print-table th{width:34%;background:#f2f2f2}
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>RHL Documentation Management System</h1>
+  <p>Resilient Homestead Livelihood documentation • Word + PDF + QR record generation</p>
+</header>
+
+<div class="container no-print">
+  <div class="card">
+    <h2>1. Activity Documentation Form</h2>
+    <div class="grid">
+      <div class="field">
+        <label>Activity *</label>
+        <select id="activity" required>
+          <option value="">Select activity</option>
+          <option>Resilient Homestead</option>
+          <option>Saline Tolerant Vegetable Cultivation</option>
+          <option>Roadside Tree Plantation</option>
+          <option>Goat/Sheep Rearing</option>
+          <option>Crab Hatchery</option>
+          <option>Crab Nursery</option>
+          <option>Crab Farming</option>
+          <option>CCAG</option>
+          <option>IE Information</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Beneficiary Name *</label>
+        <input id="beneficiaryName" placeholder="Full name">
+      </div>
+      <div class="field">
+        <label>Index Number *</label>
+        <input id="indexNo" placeholder="e.g. 123">
+      </div>
+      <div class="field">
+        <label>Beneficiary/Household ID</label>
+        <input id="beneficiaryId" placeholder="Optional">
+      </div>
+      <div class="field">
+        <label>Phone</label>
+        <input id="phone" type="tel">
+      </div>
+      <div class="field">
+        <label>Gender</label>
+        <select id="gender"><option value="">Select</option><option>Female</option><option>Male</option><option>Other</option></select>
+      </div>
+      <div class="field full">
+        <label>Address</label>
+        <textarea id="address" placeholder="Village, Union, Upazila, District"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Grant / CCGA / Location Information</h2>
+    <div class="grid">
+      <div class="field"><label>Grant Support (BDT)</label><input id="grantSupport" type="number" min="0"></div>
+      <div class="field"><label>Loan / Other Support (BDT)</label><input id="loanSupport" type="number" min="0"></div>
+      <div class="field"><label>Support Date</label><input id="supportDate" type="date"></div>
+      <div class="field"><label>CCGA Name / Information</label><input id="ccga"></div>
+      <div class="field"><label>CCGA Role / Position</label><input id="ccgaRole"></div>
+      <div class="field"><label>IE Name</label><input id="ieName"></div>
+      <div class="field"><label>Latitude</label><input id="latitude" type="number" step="any"></div>
+      <div class="field"><label>Longitude</label><input id="longitude" type="number" step="any"></div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button type="button" class="secondary" onclick="getGPS()">📍 Get Current GPS</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. Activity Details</h2>
+    <div id="dynamicFields" class="grid"></div>
+  </div>
+
+  <div class="card">
+    <h2>4. Cost & Income</h2>
+    <div class="grid">
+      <div class="field"><label>Total Investment / Cost (BDT)</label><input id="totalCost" type="number" min="0" step="0.01"></div>
+      <div class="field"><label>Total Sales / Income (BDT)</label><input id="totalIncome" type="number" min="0" step="0.01"></div>
+      <div class="field"><label>Net Income (BDT)</label><input id="netIncome" type="number" readonly></div>
+      <div class="field full"><label>Cost / Income Notes</label><textarea id="financeNotes" placeholder="Inputs, labour, feed, sales, market price, other costs/income, etc."></textarea></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>5. Pictures & Notes</h2>
+    <div class="grid">
+      <div class="field full">
+        <label>Pictures</label>
+        <input id="pictures" type="file" accept="image/*" multiple>
+        <div id="photoPreview" class="photo-preview"></div>
+        <div class="small">Pictures are used for the current browser session/document. For permanent online storage, connect Firebase or Supabase.</div>
+      </div>
+      <div class="field full"><label>Observation / Remarks</label><textarea id="remarks"></textarea></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="actions">
+      <button class="primary" type="button" onclick="saveAndGenerate()">💾 Save & Generate Documents</button>
+      <button class="secondary" type="button" onclick="resetForm()">↺ Clear Form</button>
+      <button class="secondary" type="button" onclick="exportRecords()">⬇ Export Records JSON</button>
+    </div>
+    <div id="status" class="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>Documentation Records</h2>
+    <div class="small" style="margin-bottom:10px">Records are stored in this browser using localStorage. Use Export Records JSON for backup.</div>
+    <div class="records">
+      <table>
+        <thead><tr><th>Record ID</th><th>Beneficiary</th><th>Activity</th><th>Index</th><th>Grant</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="qrBox" class="no-print">
+  <div style="font-weight:700;text-align:center" id="qrTitle"></div>
+  <div id="qr"></div>
+  <button class="secondary" onclick="closeQR()" style="width:100%">Close</button>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+const activityConfig = {
+  "Resilient Homestead": [
+    ["Homestead Type","text"],["Land/Plot Size","text"],["Number of Components","number"],
+    ["Water Source","text"],["Climate/Resilience Feature","text"]
+  ],
+  "Saline Tolerant Vegetable Cultivation": [
+    ["Cultivated Area (decimal)","number"],["Crop / Variety","text"],["Season","text"],
+    ["Seed Source","text"],["Production Quantity","number"],["Market Price (BDT/unit)","number"]
+  ],
+  "Roadside Tree Plantation": [
+    ["Road / Location","text"],["Number of Saplings","number"],["Tree Species","text"],
+    ["Planting Date","date"],["Survival Status","text"]
+  ],
+  "Goat/Sheep Rearing": [
+    ["Animal Type","select:Goat,Sheep,Goat & Sheep"],["Number of Animals","number"],
+    ["Housing Type","text"],["Breed","text"],["Current Herd Size","number"]
+  ],
+  "Crab Hatchery": [
+    ["Hatchery Type","text"],["Capacity","text"],["Water Source","text"],
+    ["Production Cycle","text"],["Current Status","select:Fully Functional,Functional with Repair Needed,Functional but Underutilized,Temporarily Non-functional,Permanently Non-functional,Converted to Other Livelihood Activity,Abandoned"],
+    ["Reason if Non-functional","textarea"]
+  ],
+  "Crab Nursery": [
+    ["Nursery Area (decimal)","number"],["Stocking Capacity","number"],["Crab Species","text"],
+    ["Production Cycle","text"],["Current Status","select:Fully Functional,Functional with Repair Needed,Functional but Underutilized,Temporarily Non-functional,Permanently Non-functional,Converted to Other Livelihood Activity,Abandoned"],
+    ["Reason if Non-functional","textarea"]
+  ],
+  "Crab Farming": [
+    ["Farm Type","select:Hard Shell Crab Farm,Soft Shell Crab Farm,Hard and Soft Shell Crab Farm"],
+    ["Farm Size (decimal)","number"],["Crab Species","text"],["Stocking Density","text"],
+    ["Production Cycle","text"],["Current Status","select:Fully Functional,Functional with Repair Needed,Functional but Underutilized,Temporarily Non-functional,Permanently Non-functional,Converted to Other Livelihood Activity,Abandoned"],
+    ["Reason if Non-functional","textarea"],["Major Constraint","text"]
+  ],
+  "CCAG": [
+    ["CCAG Name","text"],["Formation Date","date"],["Members","number"],["Chairperson","text"],
+    ["Secretary","text"],["Meeting Frequency","text"],["Key Activities","textarea"]
+  ],
+  "IE Information": [
+    ["IE Name","text"],["IE Organization","text"],["Designation","text"],["Contact Number","tel"],
+    ["Coverage Area","text"],["Remarks","textarea"]
+  ]
+};
+
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+}
+function money(v){return Number(v||0).toLocaleString("en-BD",{maximumFractionDigits:2})}
+
+function renderDynamicFields(){
+  const activity=document.getElementById("activity").value;
+  const box=document.getElementById("dynamicFields");
+  box.innerHTML="";
+  (activityConfig[activity]||[]).forEach(([label,type],i)=>{
+    const id="dyn_"+i;
+    const div=document.createElement("div");
+    div.className="field"+(type==="textarea"?" full":"");
+    let control="";
+    if(type.startsWith("select:")){
+      const opts=type.split(":")[1].split(",");
+      control=`<select id="${id}"><option value="">Select</option>${opts.map(o=>`<option>${esc(o)}</option>`).join("")}</select>`;
+    }else if(type==="textarea"){
+      control=`<textarea id="${id}"></textarea>`;
+    }else{
+      control=`<input id="${id}" type="${type}">`;
+    }
+    div.innerHTML=`<label>${esc(label)}</label>${control}`;
+    box.appendChild(div);
+  });
+}
+document.getElementById("activity").addEventListener("change",renderDynamicFields);
+
+document.getElementById("totalCost").addEventListener("input",calcNet);
+document.getElementById("totalIncome").addEventListener("input",calcNet);
+function calcNet(){
+  const c=Number(document.getElementById("totalCost").value||0);
+  const i=Number(document.getElementById("totalIncome").value||0);
+  document.getElementById("netIncome").value=(i-c).toFixed(2);
+}
+
+function getGPS(){
+  if(!navigator.geolocation){alert("Geolocation is not supported by this browser.");return}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    document.getElementById("latitude").value=pos.coords.latitude.toFixed(7);
+    document.getElementById("longitude").value=pos.coords.longitude.toFixed(7);
+  },err=>alert("Could not get GPS: "+err.message),{enableHighAccuracy:true,timeout:10000});
+}
+
+document.getElementById("pictures").addEventListener("change",()=>{
+  const box=document.getElementById("photoPreview"); box.innerHTML="";
+  [...document.getElementById("pictures").files].slice(0,8).forEach(f=>{
+    const img=document.createElement("img"); img.src=URL.createObjectURL(f); box.appendChild(img);
+  });
+});
+
+function makeRecordId(){
+  const d=new Date();
+  const year=d.getFullYear();
+  const records=JSON.parse(localStorage.getItem("rhlRecords")||"[]");
+  const n=records.length+1;
+  return `RHL-${year}-${String(n).padStart(4,"0")}`;
+}
+
+function collectData(){
+  const activity=document.getElementById("activity").value;
+  const data={
+    recordId:makeRecordId(), createdAt:new Date().toISOString(), activity,
+    beneficiaryName:document.getElementById("beneficiaryName").value.trim(),
+    indexNo:document.getElementById("indexNo").value.trim(),
+    beneficiaryId:document.getElementById("beneficiaryId").value.trim(),
+    phone:document.getElementById("phone").value.trim(),
+    gender:document.getElementById("gender").value,
+    address:document.getElementById("address").value.trim(),
+    grantSupport:document.getElementById("grantSupport").value,
+    loanSupport:document.getElementById("loanSupport").value,
+    supportDate:document.getElementById("supportDate").value,
+    ccga:document.getElementById("ccga").value.trim(),
+    ccgaRole:document.getElementById("ccgaRole").value.trim(),
+    ieName:document.getElementById("ieName").value.trim(),
+    latitude:document.getElementById("latitude").value,
+    longitude:document.getElementById("longitude").value,
+    totalCost:document.getElementById("totalCost").value,
+    totalIncome:document.getElementById("totalIncome").value,
+    netIncome:document.getElementById("netIncome").value,
+    financeNotes:document.getElementById("financeNotes").value.trim(),
+    remarks:document.getElementById("remarks").value.trim(),
+    dynamic:{}
+  };
+  (activityConfig[activity]||[]).forEach(([label],i)=>{
+    const el=document.getElementById("dyn_"+i);
+    if(el) data.dynamic[label]=el.value;
+  });
+  return data;
+}
+
+function validate(data){
+  if(!data.activity){alert("Please select an activity.");return false}
+  if(!data.beneficiaryName){alert("Please enter Beneficiary Name.");return false}
+  if(!data.indexNo){alert("Please enter Index Number.");return false}
+  return true;
+}
+
+function saveRecord(data){
+  const records=JSON.parse(localStorage.getItem("rhlRecords")||"[]");
+  records.unshift(data);
+  localStorage.setItem("rhlRecords",JSON.stringify(records));
+  renderRecords();
+}
+
+function showQR(data){
+  const box=document.getElementById("qrBox");
+  document.getElementById("qrTitle").textContent=data.recordId;
+  document.getElementById("qr").innerHTML="";
+  const pageUrl=new URL(location.href);
+  pageUrl.hash="record="+encodeURIComponent(data.recordId);
+  new QRCode(document.getElementById("qr"),{text:pageUrl.toString(),width:180,height:180});
+  box.style.display="block";
+}
+function closeQR(){document.getElementById("qrBox").style.display="none"}
+
+async function generateDocx(data){
+  const {Document,Packer,Paragraph,Table,TableCell,TableRow,TextRun,HeadingLevel,AlignmentType,WidthType}=docx;
+  const rows=[];
+  const add=(k,v)=>rows.push(new TableRow({children:[
+    new TableCell({children:[new Paragraph({children:[new TextRun({text:String(k),bold:true})]})]}),
+    new TableCell({children:[new Paragraph(String(v??""))]})
+  ]}));
+  add("Record ID",data.recordId); add("Activity",data.activity); add("Beneficiary Name",data.beneficiaryName);
+  add("Index Number",data.indexNo); add("Beneficiary/Household ID",data.beneficiaryId);
+  add("Phone",data.phone); add("Gender",data.gender); add("Address",data.address);
+  add("Grant Support (BDT)",money(data.grantSupport)); add("Loan / Other Support (BDT)",money(data.loanSupport));
+  add("Support Date",data.supportDate); add("CCGA",data.ccga); add("CCGA Role",data.ccgaRole); add("IE Name",data.ieName);
+  add("Latitude",data.latitude); add("Longitude",data.longitude);
+  Object.entries(data.dynamic).forEach(([k,v])=>add(k,v));
+  add("Total Cost (BDT)",money(data.totalCost)); add("Total Income (BDT)",money(data.totalIncome)); add("Net Income (BDT)",money(data.netIncome));
+  add("Cost / Income Notes",data.financeNotes); add("Observation / Remarks",data.remarks);
+  const doc=new Document({sections:[{children:[
+    new Paragraph({text:"RHL Documentation Record",heading:HeadingLevel.TITLE,alignment:AlignmentType.CENTER}),
+    new Paragraph({text:data.activity,bold:true,alignment:AlignmentType.CENTER}),
+    new Paragraph({text:`Record ID: ${data.recordId}`,alignment:AlignmentType.CENTER}),
+    new Paragraph({text:" "}),
+    new Table({rows, width:{size:100,type:WidthType.PERCENTAGE}})
+  ]}]});
+  const blob=await Packer.toBlob(doc);
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`${data.recordId}.docx`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+function buildPrint(data){
+  let rows=[
+    ["Record ID",data.recordId],["Activity",data.activity],["Beneficiary Name",data.beneficiaryName],
+    ["Index Number",data.indexNo],["Beneficiary/Household ID",data.beneficiaryId],["Phone",data.phone],
+    ["Gender",data.gender],["Address",data.address],["Grant Support (BDT)",money(data.grantSupport)],
+    ["Loan / Other Support (BDT)",money(data.loanSupport)],["Support Date",data.supportDate],
+    ["CCGA",data.ccga],["CCGA Role",data.ccgaRole],["IE Name",data.ieName],
+    ["Latitude",data.latitude],["Longitude",data.longitude],
+    ...Object.entries(data.dynamic),["Total Cost (BDT)",money(data.totalCost)],
+    ["Total Income (BDT)",money(data.totalIncome)],["Net Income (BDT)",money(data.netIncome)],
+    ["Cost / Income Notes",data.financeNotes],["Observation / Remarks",data.remarks]
+  ];
+  document.getElementById("printArea").innerHTML=`
+    <div class="print-page">
+      <h1>RHL Documentation Record</h1>
+      <div class="meta"><strong>${esc(data.activity)}</strong><br>Record ID: ${esc(data.recordId)}</div>
+      <table class="print-table">${rows.map(r=>`<tr><th>${esc(r[0])}</th><td>${esc(r[1])}</td></tr>`).join("")}</table>
+      <p style="margin-top:25px"><strong>Generated:</strong> ${esc(new Date(data.createdAt).toLocaleString())}</p>
+      <div style="margin-top:30px;text-align:center">
+        <div id="printQR"></div>
+        <div>${esc(data.recordId)}</div>
+      </div>
+    </div>`;
+  const q=document.getElementById("printQR");
+  new QRCode(q,{text:new URL(location.href).origin+location.href.substring(location.origin.length).split("#")[0]+"#record="+encodeURIComponent(data.recordId),width:130,height:130});
+}
+
+function printPDF(data){
+  buildPrint(data);
+  setTimeout(()=>window.print(),300);
+}
+
+async function saveAndGenerate(){
+  const data=collectData();
+  if(!validate(data))return;
+  saveRecord(data);
+  showQR(data);
+  try{await generateDocx(data)}catch(e){console.error(e);alert("The Word file could not be generated. Check your internet connection because the browser library is loaded from a CDN.");}
+  printPDF(data);
+  const st=document.getElementById("status");
+  st.style.display="block";
+  st.innerHTML=`Saved <strong>${esc(data.recordId)}</strong>. Word download started and the print dialog is opening. Choose <strong>Save as PDF</strong> to create ${esc(data.recordId)}.pdf.`;
+}
+
+function renderRecords(){
+  const records=JSON.parse(localStorage.getItem("rhlRecords")||"[]");
+  const body=document.getElementById("recordsBody");
+  body.innerHTML=records.map((r,i)=>`
+    <tr>
+      <td><span class="badge">${esc(r.recordId)}</span></td>
+      <td>${esc(r.beneficiaryName)}</td><td>${esc(r.activity)}</td><td>${esc(r.indexNo)}</td>
+      <td>${money(r.grantSupport)}</td><td>${esc(new Date(r.createdAt).toLocaleString())}</td>
+      <td>
+        <button class="secondary" onclick="showQR(JSON.parse(localStorage.getItem('rhlRecords'))[${i}])">QR</button>
+        <button class="secondary" onclick="downloadExisting(${i})">Word</button>
+        <button class="secondary" onclick="printExisting(${i})">PDF</button>
+        <button class="danger" onclick="deleteRecord(${i})">Delete</button>
+      </td>
+    </tr>`).join("");
+}
+async function downloadExisting(i){
+  const r=JSON.parse(localStorage.getItem("rhlRecords")||"[]")[i];
+  if(r) await generateDocx(r);
+}
+function printExisting(i){
+  const r=JSON.parse(localStorage.getItem("rhlRecords")||"[]")[i];
+  if(r) printPDF(r);
+}
+function deleteRecord(i){
+  if(!confirm("Delete this record from this browser?"))return;
+  const records=JSON.parse(localStorage.getItem("rhlRecords")||"[]");
+  records.splice(i,1); localStorage.setItem("rhlRecords",JSON.stringify(records)); renderRecords();
+}
+function exportRecords(){
+  const records=localStorage.getItem("rhlRecords")||"[]";
+  const blob=new Blob([records],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="RHL_Documentation_Records.json";a.click();
+}
+function resetForm(){
+  document.querySelectorAll("input,textarea,select").forEach(el=>{
+    if(el.id!=="netIncome") el.value="";
+  });
+  document.getElementById("dynamicFields").innerHTML="";
+  document.getElementById("photoPreview").innerHTML="";
+  document.getElementById("status").style.display="none";
+}
+function loadFromHash(){
+  const m=location.hash.match(/^#record=(.+)$/);
+  if(!m)return;
+  const id=decodeURIComponent(m[1]);
+  const records=JSON.parse(localStorage.getItem("rhlRecords")||"[]");
+  const r=records.find(x=>x.recordId===id);
+  if(!r)return;
+  document.querySelector(".container").classList.add("no-print");
+  alert(`Record ${id}\\nBeneficiary: ${r.beneficiaryName}\\nActivity: ${r.activity}\\nIndex: ${r.indexNo}\\n\\nFor a public QR lookup page, connect this site to Firebase/Supabase so the record can be retrieved from the internet.`);
+}
+renderDynamicFields();
+renderRecords();
+loadFromHash();
+</script>
+</body>
+</html>
